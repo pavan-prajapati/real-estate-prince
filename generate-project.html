@@ -222,10 +222,16 @@ function getPriceRows(){
 function getConnHTML(){
   let h='';
   document.querySelectorAll('.crow').forEach(r=>{
-    const icon=r.querySelector('.ci').value.trim()||'📍';
-    const name=r.querySelector('.cn').value.trim();
-    const dist=r.querySelector('.cd').value.trim();
-    const note=r.querySelector('.cs').value.trim();
+    const ciEl=r.querySelector('.ci');
+    const cnEl=r.querySelector('.cn');
+    const cdEl=r.querySelector('.cd');
+    const csEl=r.querySelector('.cs');
+    // skip header row or incomplete rows
+    if(!ciEl||!cnEl||!cdEl||!csEl) return;
+    const icon=ciEl.value.trim()||'📍';
+    const name=cnEl.value.trim();
+    const dist=cdEl.value.trim();
+    const note=csEl.value.trim();
     if(!name) return;
     h+=`      <div class="conn-item">
         <div class="conn-icon">${icon}</div>
@@ -342,16 +348,74 @@ function generate(){
     <p style="color:var(--cream-muted);font-size:0.9rem;margin-top:0.3rem">By <strong style="color:var(--cream)">${builder}</strong></p>
   </div>
 
-  <div class="gallery">
-    <div class="gallery-main" style="display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:0.82rem;flex-direction:column;gap:0.5rem;background:var(--surface2);border-radius:var(--radius-lg)">
-      <span style="font-size:2.5rem">🏗️</span>
-      <span>Add: assets/images/${slug}-main.jpg</span>
-      <!-- <img src="../assets/images/${slug}-main.jpg" alt="${name}"> -->
+  <div class="media-section">
+    <div class="media-tabs">
+      <button class="media-tab active" data-tab="photos">📷 Photos <span class="tab-count" id="photo-count">0</span></button>
+      <button class="media-tab" data-tab="videos">🎬 Videos <span class="tab-count" id="video-count">0</span></button>
+      <button class="media-tab" data-tab="brochure">📄 Brochure</button>
     </div>
-    <div class="gallery-side">
-      <div class="gallery-thumb" style="background:var(--surface2);border-radius:var(--radius-lg);display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:0.75rem">Photo 2</div>
-      <div class="gallery-thumb" style="background:var(--surface2);border-radius:var(--radius-lg);display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:0.75rem">Photo 3</div>
+
+    <div class="media-panel active" id="panel-photos">
+      <div class="photo-grid" id="photoGrid">
+        <!--
+          ADD PHOTOS HERE — copy this block for each image:
+          <div class="photo-thumb" onclick="openLightbox(N)">
+            <img src="../assets/images/${slug}-1.jpg" alt="${name}" loading="lazy" />
+            <div class="zoom-icon">🔍</div>
+          </div>
+          Replace N with 0,1,2,3... for each photo.
+        -->
+        <div class="photo-thumb placeholder">
+          <span style="font-size:2rem">📷</span>
+          <span>Add images to<br>assets/images/</span>
+        </div>
+      </div>
     </div>
+
+    <div class="media-panel" id="panel-videos">
+      <div class="video-grid">
+        <!--
+          Option A — Local file:
+          <div class="video-item">
+            <video controls preload="none"><source src="../assets/videos/${slug}.mp4" type="video/mp4"></video>
+            <div class="video-item-label">Site Walkthrough</div>
+          </div>
+
+          Option B — YouTube:
+          <div class="video-item">
+            <iframe src="https://www.youtube.com/embed/YOUR_ID" allowfullscreen loading="lazy"></iframe>
+            <div class="video-item-label">Project Walkthrough</div>
+          </div>
+        -->
+        <div class="video-placeholder">
+          <div class="play-icon">▶</div>
+          <span>Add: assets/videos/${slug}.mp4</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="media-panel" id="panel-brochure">
+      <div class="brochure-list">
+        <div class="brochure-item">
+          <div class="brochure-icon">📋</div>
+          <div class="brochure-info">
+            <strong>${name} — Main Brochure</strong>
+            <span>Full project details, floor plans · PDF</span>
+          </div>
+          <a href="../assets/brochures/${slug}.pdf" class="btn-dl-small" download>⬇ Download</a>
+        </div>
+      </div>
+      <div class="cert-logos-row" style="margin-top:1.5rem;justify-content:flex-start">${certHTML}
+      </div>
+    </div>
+  </div>
+
+  <div class="lightbox" id="lightbox" onclick="closeLightboxOnBg(event)">
+    <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+    <button class="lightbox-prev" onclick="lightboxNav(-1)">‹</button>
+    <img class="lightbox-img" id="lightboxImg" src="" alt="" />
+    <button class="lightbox-next" onclick="lightboxNav(1)">›</button>
+    <div class="lightbox-counter" id="lightboxCounter"></div>
   </div>
 
 ${connHTML?`  <div class="connectivity-section">
@@ -370,17 +434,6 @@ ${connHTML}    </div>
         Registered under Maharashtra Real Estate Regulatory Authority (MahaRERA).<br>
         <a href="https://maharera.mahaonline.gov.in" target="_blank" style="color:var(--gold);font-size:0.8rem">MahaRERA pe verify karo →</a>
       </div>
-
-      <div style="margin-top:2rem">
-        <h2 style="font-family:var(--font-display);font-size:1.4rem;margin-bottom:1rem">Project Walkthrough</h2>
-        <div class="video-grid">
-          <!-- <video src="../assets/videos/${slug}.mp4" controls style="width:100%;border-radius:8px"></video> -->
-          <div class="video-placeholder">
-            <div class="play-icon">▶</div>
-            <span>Add: assets/videos/${slug}.mp4</span>
-          </div>
-        </div>
-      </div>
     </div>
 
     <div>
@@ -393,40 +446,69 @@ ${getPriceRows()}          </tbody>
         </table>
         <p style="font-size:0.72rem;color:var(--text-muted);margin-top:0.8rem">* Prices subject to change. Contact for current availability.</p>
       </div>
-
-      <div class="download-section">
-        <a href="../assets/brochures/${slug}.pdf" class="btn-download" download>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-            <polyline points="7 10 12 15 17 10"/>
-            <line x1="12" y1="15" x2="12" y2="3"/>
-          </svg>
-          Brochure Download Karo
-        </a>
-        <div class="cert-logos-row">${certHTML}
-        </div>
-      </div>${pickupBlock}
+${pickupBlock}
     </div>
   </div>
 ${mapBlock}
   <footer class="footer">
     <div class="footer-inner">
-      <p class="footer-name">Your Name</p>
+      <p class="footer-name">Prince</p>
       <p class="footer-sub">Property Advisor · Kharghar, Navi Mumbai</p>
       <div class="footer-links">
         <a href="../contact.html">Contact</a>
-        <a href="tel:+919900000000">+91 99000 00000</a>
+        <a href="tel:+919619307921">+91 96193 07921</a>
       </div>
-      <p class="footer-copy">© 2025 Your Name. Projects are RERA approved by respective builders.</p>
+      <p class="footer-copy">© 2025 Prince. Projects are RERA approved by respective builders.</p>
     </div>
   </footer>
 
-  <a href="https://wa.me/919900000000?text=Hi%2C%20${encodeURIComponent(name)}%20ke%20baare%20mein%20poochna%20tha" class="wa-float" target="_blank">
+  <a href="https://wa.me/919619307921?text=Hi%2C%20${encodeURIComponent(name)}%20ke%20baare%20mein%20poochna%20tha" class="wa-float" target="_blank">
     <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
     <span>WhatsApp Karo</span>
   </a>
 
   <script src="../main.js"><\/script>
+  <script>
+    document.querySelectorAll('.media-tab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.media-tab').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.media-panel').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
+      });
+    });
+    const allThumbs = () => [...document.querySelectorAll('#photoGrid .photo-thumb:not(.placeholder)')];
+    let currentIdx = 0;
+    function updatePhotoCount() { document.getElementById('photo-count').textContent = allThumbs().length; }
+    updatePhotoCount();
+    window.addEventListener('load', updatePhotoCount);
+    function openLightbox(idx) {
+      const thumbs = allThumbs(); if (!thumbs.length) return;
+      currentIdx = idx;
+      const img = thumbs[idx].querySelector('img');
+      document.getElementById('lightboxImg').src = img.src;
+      document.getElementById('lightboxImg').alt = img.alt;
+      document.getElementById('lightboxCounter').textContent = (idx+1) + ' / ' + thumbs.length;
+      document.getElementById('lightbox').classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+    function closeLightbox() { document.getElementById('lightbox').classList.remove('open'); document.body.style.overflow = ''; }
+    function closeLightboxOnBg(e) { if (e.target === document.getElementById('lightbox')) closeLightbox(); }
+    function lightboxNav(dir) {
+      const thumbs = allThumbs(); currentIdx = (currentIdx + dir + thumbs.length) % thumbs.length;
+      const img = thumbs[currentIdx].querySelector('img');
+      const lb = document.getElementById('lightboxImg');
+      lb.style.opacity='0';
+      setTimeout(() => { lb.src=img.src; lb.alt=img.alt; lb.style.opacity='1'; document.getElementById('lightboxCounter').textContent=(currentIdx+1)+' / '+thumbs.length; }, 150);
+    }
+    document.addEventListener('keydown', e => {
+      if (!document.getElementById('lightbox').classList.contains('open')) return;
+      if (e.key==='Escape') closeLightbox();
+      if (e.key==='ArrowLeft') lightboxNav(-1);
+      if (e.key==='ArrowRight') lightboxNav(1);
+    });
+    document.getElementById('video-count').textContent = document.querySelectorAll('#panel-videos .video-item').length;
+  <\/script>
 </body>
 </html>`;
 
